@@ -47,7 +47,7 @@ def download(query: str, limit=100, output_dir='dataset', adult_filter_off=True,
         sys.exit(1)
 
     print("[%] Downloading Images to {}".format(str(image_dir.absolute())))
-    bing = Bing(query, limit, image_dir, adult, timeout, img_filter, img_size, verbose)
+    bing = Bing(query, limit, image_dir, adult, timeout, img_filter, verbose, img_size)
     bing.run()
 
 

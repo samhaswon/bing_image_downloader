@@ -6,7 +6,7 @@ import urllib
 import urllib.request
 
 '''
-Python api to download image form Bing.
+Python package to download image form Bing.
 Author: Guru Prasad (g.gaurav541@gmail.com)
 '''
 
@@ -55,7 +55,7 @@ class Bing:
         elif shorthand == "transparent":
             filter_string += "+filterui:photo-transparent"
 
-        if self.image_size:
+        if self.image_size is not None:
             filter_string += "+filterui:imagesize-custom_" + self.image_size
 
         return filter_string
