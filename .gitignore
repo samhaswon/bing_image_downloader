@@ -1,6 +1,8 @@
 *.pyc
 dataset/*
-dataset
-dist
-image_search.egg-info
+dataset/
+dist/
+image_search.egg-info/
 **/.vscode/*
+.idea/*
+bing_image_downloader.egg-info/
