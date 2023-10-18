@@ -1,14 +1,13 @@
 import sys
 from bing_image_downloader import downloader
 
-query=sys.argv[1]
+query = sys.argv[1]
 
 if len(sys.argv) == 3:
-    filter=sys.argv[2]
+    img_filter = sys.argv[2]
 else:
-    filter=""
-    
-            
+    img_filter = ""
+
 downloader.download(
     query,
     limit=10,
@@ -16,7 +15,6 @@ downloader.download(
     adult_filter_off=True,
     force_replace=False,
     timeout=60,
-    filter=filter,
+    img_filter=img_filter,
     verbose=True,
 )
-
