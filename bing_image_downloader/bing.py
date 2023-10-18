@@ -12,7 +12,8 @@ Author: Guru Prasad (g.gaurav541@gmail.com)
 
 
 class Bing:
-    def __init__(self, query, limit, output_dir, adult, timeout, img_filter=None, verbose=True, image_size=None) -> None:
+    def __init__(self, query, limit, output_dir, adult, timeout, img_filter=None, verbose=True,
+                 image_size=None) -> None:
         if img_filter is None:
             img_filter = ""
         self.image_size = image_size
@@ -83,8 +84,11 @@ class Bing:
                 # Download the image
                 print("[%] Downloading Image #{} from {}".format(self.download_count, link))
 
-            self.save_image(link, self.output_dir.joinpath("Image_{}.{}".format(
-                str(self.download_count), file_type)))
+            query_name = re.sub(r"\s", "_", self.query)
+
+            self.save_image(link, self.output_dir.joinpath("{}_Image_{}.{}".format(query_name,
+                                                                                   str(self.download_count),
+                                                                                   file_type)))
             if self.verbose:
                 print("[%] File Downloaded !\n")
 
