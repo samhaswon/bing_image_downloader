@@ -1,9 +1,10 @@
-import imghdr
+from PIL import Image
 import shutil
 import posixpath
 import re
 import urllib
 import urllib.request
+import os
 
 '''
 Python package to download image form Bing.
@@ -62,13 +63,31 @@ class Bing:
         return filter_string
 
     def save_image(self, link, file_path) -> None:
-        request = urllib.request.Request(link, None, self.headers)
-        image = urllib.request.urlopen(request, timeout=self.timeout).read()
-        if not imghdr.what(None, image):
-            print('[Error]Invalid image, not saving {}\n'.format(link))
-            raise ValueError('Invalid image, not saving {}\n'.format(link))
-        with open(str(file_path), 'wb') as f:
-            f.write(image)
+        # Generally works for most URLs
+        try:
+            urllib.request.urlretrieve(link, file_path)
+        # Generally works for broken URLs
+        except urllib.request.HTTPError:
+            print("[%] Encountered HTTP Error 403. Attempting secondary download method")
+            request = urllib.request.Request(link, None, self.headers)
+            image: bytes = urllib.request.urlopen(request, timeout=self.timeout).read()
+            with open(str(file_path), 'wb') as f:
+                f.write(image)
+        # Validate the downloaded image with Pillow
+        finally:
+            try:
+                img = Image.open(file_path)
+                img.load()
+                if not img.format:
+                    img.close()
+                    os.remove(file_path)
+                    print('[Error]Invalid image, not saving {}\n'.format(link))
+                    raise ValueError('Invalid image, not saving {}\n'.format(link))
+                else:
+                    img.close()
+            except Exception:
+                print('[Error]Invalid image, not saving {}\n'.format(link))
+                raise ValueError('Invalid image, not saving {}\n'.format(link))
 
     def download_image(self, link) -> None:
         self.download_count += 1
