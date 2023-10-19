@@ -1,3 +1,4 @@
+import time
 from PIL import Image
 import shutil
 import posixpath
@@ -5,6 +6,7 @@ import re
 import urllib
 import urllib.request
 import os
+from typing import Union, Tuple
 
 '''
 Python package to download image form Bing.
@@ -17,30 +19,30 @@ class Bing:
                  image_size=None) -> None:
         if img_filter is None:
             img_filter = ""
-        self.image_size = image_size
-        self.download_count = 0
-        self.query = query
+        self.image_size: str = image_size
+        self.download_count: int = 0
+        self.query: str = query
         self.output_dir = output_dir
-        self.adult = adult
-        self.filter = img_filter
-        self.verbose = verbose
-        self.seen = set()
+        self.adult: bool = adult
+        self.filter: Union[str, None] = img_filter
+        self.verbose: bool = verbose
+        self.seen: set = set()
+        self.back_off: Tuple[bool, int] = False, 0
 
         assert type(limit) == int, "limit must be integer"
         self.limit = limit
         assert type(timeout) == int, "timeout must be integer"
         self.timeout = timeout
 
-        # self.headers = {'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0'}
-        self.page_counter = 0
-        self.headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) '
-                                      'AppleWebKit/537.11 (KHTML, like Gecko) '
-                                      'Chrome/23.0.1271.64 Safari/537.11',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                        'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-                        'Accept-Encoding': 'none',
-                        'Accept-Language': 'en-US,en;q=0.8',
-                        'Connection': 'keep-alive'}
+        self.page_counter: int = 0
+        self.headers: dict = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) '
+                                            'AppleWebKit/537.11 (KHTML, like Gecko) '
+                                            'Chrome/23.0.1271.64 Safari/537.11',
+                              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                              'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+                              'Accept-Encoding': 'none',
+                              'Accept-Language': 'en-US,en;q=0.8',
+                              'Connection': 'keep-alive'}
 
     def get_filter(self, shorthand) -> str:
 
@@ -115,7 +117,7 @@ class Bing:
             self.download_count -= 1
             print("[!] Issue getting: {}\n[!] Error:: {}".format(link, e))
 
-    def run(self):
+    def run(self) -> None:
         while self.download_count < self.limit:
             if self.verbose:
                 print('\n\n[!!]Indexing page: {}\n'.format(self.page_counter + 1))
@@ -126,9 +128,16 @@ class Bing:
             request = urllib.request.Request(request_url, None, headers=self.headers)
             response = urllib.request.urlopen(request)
             html = response.read().decode('utf8')
-            if html == "":
+            if self.back_off[0] and self.back_off[1] + 2 < self.download_count:
+                self.back_off = False, 0
+            if html == "" and self.back_off[0]:
                 print("[%] No more images are available")
                 break
+            elif html == "" and not self.back_off[0]:
+                print("[%] Encountered rate limit. Backing off...")
+                time.sleep(5)
+                self.back_off = True, self.download_count
+                continue
             links = re.findall('murl&quot;:&quot;(.*?)&quot;', html)
             if self.verbose:
                 print("[%] Indexed {} Images on Page {}.".format(len(links), self.page_counter + 1))
