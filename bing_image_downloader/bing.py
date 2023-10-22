@@ -65,6 +65,14 @@ class Bing:
         return filter_string
 
     def save_image(self, link, file_path) -> None:
+        # Short circuit on some of the watermarked images
+        if "dreamstime" in link or \
+                "alamy" in link or \
+                "istockphoto" in link or \
+                "depositphotos" in link or \
+                "gettyimages" in link:
+            raise Exception("Watermarked photo")
+
         # Generally works for most URLs
         try:
             urllib.request.urlretrieve(link, file_path)
