@@ -23,7 +23,6 @@ def download(query: Union[str, list], limit=100, output_dir='dataset', adult_fil
     :param img_size: Minimum size of the images to download with `_` separating the width and height respectively (i.e.
     `512_512`)
     :param verbose: Whether to enable verbose logging
-
     """
     if img_filter is None:
         img_filter = ""

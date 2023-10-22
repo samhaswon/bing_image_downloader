@@ -30,8 +30,20 @@ def get_hash(file_path: str, mode="md5") -> str:
 
 
 class Bing:
-    def __init__(self, query, limit, output_dir, adult, timeout, img_filter=None, verbose=True,
+    def __init__(self, query, limit=100, output_dir='dataset', adult=True, timeout=60, img_filter=None, verbose=True,
                  image_size=None) -> None:
+        """
+        Initialize a Bing (downloader) object
+        :param query: String or list of strings to query Bing for images of.
+        :param limit: Maximum number of images to download for the given query
+        :param output_dir: Directory to place the downloaded images in
+        :param adult: whether to disable the Adult Content img_filter, or not (True disables it)
+        :param timeout: connection timeout in seconds
+        :param img_filter: Filter images by desired type: line|photo|clipart|gif|transparent
+        :param image_size: Minimum size of the images to download with `_` separating the width and height respectively
+        (i.e. `512_512`)
+        :param verbose: Whether to enable verbose logging
+        """
         if img_filter is None:
             img_filter = ""
         self.image_size: str = image_size
@@ -61,6 +73,11 @@ class Bing:
                               'Connection': 'keep-alive'}
 
     def get_filter(self, shorthand) -> str:
+        """
+        Generates the filter string for Bing
+        :param shorthand: type of image to filter for
+        :returns: Filter string for the Bing URL
+        """
 
         filter_string = ""
 
@@ -81,6 +98,11 @@ class Bing:
         return filter_string
 
     def save_image(self, link, file_path) -> None:
+        """
+        Does the actual downloading of the file at the given link to the specified file path
+        :param link: Link to the file to download
+        :param file_path: Path to save the given file to
+        """
         # Short circuit on some of the watermarked images
         if "dreamstime" in link or \
                 "alamy" in link or \
@@ -126,7 +148,11 @@ class Bing:
                 print('[Error] Invalid image, not saving {}\n'.format(link))
                 raise ValueError('Invalid image, not saving {}\n'.format(link))
 
-    def download_image(self, link) -> None:
+    def download_image(self, link: str) -> None:
+        """
+        Downloads the image at the given link to the predefined folder
+        :param link: The link to the image to download
+        """
         self.__download_count += 1
         # Get the image link
         try:
@@ -140,6 +166,7 @@ class Bing:
                 # Download the image
                 print("[%] Downloading Image #{} from {}".format(self.__download_count, link))
 
+            # Pseudo-sanitize the query for file naming
             query_name = re.sub(r"\s", "_", self.query)
 
             self.save_image(link, self.__output_dir.joinpath("{}_Image_{}.{}".format(query_name,
@@ -153,16 +180,26 @@ class Bing:
             print("[!] Issue getting: {}\n[!] Error:: {}".format(link, e))
 
     def run(self) -> None:
+        """
+        Starts the download process
+        :returns: None
+        """
         while self.__download_count < self.limit:
             if self.verbose:
                 print('\n\n[!!]Indexing page: {}\n'.format(self.page_counter + 1))
+
             # Parse the page source and download pics
-            request_url = 'https://www.bing.com/images/async?q=' + urllib.parse.quote_plus(self.__query) \
-                          + '&first=' + str(self.page_counter) + '&count=' + str(self.limit) \
-                          + '&adlt=' + self.adult + '&qft=' + self.get_filter(self.filter)
+            request_url = 'https://www.bing.com/images/async?q=' + \
+                          urllib.parse.quote_plus(self.__query) + \
+                          '&first=' + str(self.page_counter) + \
+                          '&count=' + str(self.limit) + \
+                          '&adlt=' + str(self.adult) + \
+                          '&qft=' + self.get_filter(self.filter)
             request = urllib.request.Request(request_url, None, headers=self.headers)
             response = urllib.request.urlopen(request)
             html = response.read().decode('utf8')
+
+            # Backoff if being rate limited.
             if self.back_off[0] and self.back_off[1] + 2 < self.__download_count:
                 self.back_off = False, 0
             if html == "" and self.back_off[0]:
@@ -173,11 +210,16 @@ class Bing:
                 time.sleep(5)
                 self.back_off = True, self.__download_count
                 continue
+
+            # Find all image links
             links = re.findall('murl&quot;:&quot;(.*?)&quot;', html)
             if self.verbose:
                 print("[%] Indexed {} Images on Page {}.".format(len(links), self.page_counter + 1))
+
+                # Terminal width bar made of equals signs
                 print("\n" + "=" * shutil.get_terminal_size((80, 20)).columns + "\n")
 
+            # Download each link from the page if it has not been seen
             for link in links:
                 if self.__download_count < self.limit and link not in self.seen:
                     self.seen.add(link)
@@ -185,20 +227,35 @@ class Bing:
 
             self.page_counter += 1
         print("\n\n[%] Done. Downloaded {} images.".format(self.__download_count))
+
+        # Reset the counts for repeated use
+        self.page_counter = 0
         self.__download_count = 0
 
     @property
     def query(self):
+        """
+        The query to search Bing for
+        """
         return self.__query
 
     @query.setter
     def query(self, value):
+        """
+        Set a new query to search for
+        """
         self.__query = value
 
     @property
     def output_dir(self):
+        """
+        The directory images are saved to
+        """
         return self.__output_dir
 
     @output_dir.setter
     def output_dir(self, value):
+        """
+        Set the directory images are saved to
+        """
         self.__output_dir = value
