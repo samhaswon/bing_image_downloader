@@ -1,3 +1,12 @@
+########################################################################
+# Showcase using a string as input to the downloader to download a
+# single series of images
+#
+# File name: test_sample.py
+# Author: Samuel Howard, Computer Science Major
+# Version: 10-21-2023
+########################################################################
+
 from bing_image_downloader import downloader
 
 
