@@ -1,5 +1,6 @@
 import time
 from PIL import Image
+import hashlib
 import shutil
 import posixpath
 import re
@@ -14,6 +15,20 @@ Author: Guru Prasad (g.gaurav541@gmail.com)
 '''
 
 
+def get_hash(file_path: str, mode="md5") -> str:
+    """
+    Calculates the hash of the given file
+    :param file_path: Path to the file
+    :param mode: Method to calculate the hash of the file
+    :returns: Hex digest of the file hash
+    """
+    file_hash = hashlib.new(mode)
+    with open(file_path, 'rb') as file:
+        data = file.read()
+    file_hash.update(data)
+    return file_hash.hexdigest()
+
+
 class Bing:
     def __init__(self, query, limit, output_dir, adult, timeout, img_filter=None, verbose=True,
                  image_size=None) -> None:
@@ -21,6 +36,7 @@ class Bing:
             img_filter = ""
         self.image_size: str = image_size
         self.download_count: int = 0
+        self.file_hashes: set = set()
         self.query: str = query
         self.output_dir = output_dir
         self.adult: bool = adult
@@ -78,6 +94,9 @@ class Bing:
             urllib.request.urlretrieve(link, file_path)
         # Generally works for broken URLs
         except urllib.request.HTTPError:
+            # Just in case the previous method actually downloaded something
+            if os.path.isfile(file_path):
+                os.remove(file_path)
             print("[%] Encountered HTTP Error 403. Attempting secondary download method")
             request = urllib.request.Request(link, None, self.headers)
             image: bytes = urllib.request.urlopen(request, timeout=self.timeout).read()
@@ -95,8 +114,16 @@ class Bing:
                     raise ValueError('Invalid image, not saving {}\n'.format(link))
                 else:
                     img.close()
+
+                # Check for duplicates from multiple sources via file hashes
+                file_hash = get_hash(file_path)
+                if file_hash in self.file_hashes:
+                    os.remove(file_path)
+                    raise Exception("Duplicate file found")
+                else:
+                    self.file_hashes.add(file_hash)
             except Exception:
-                print('[Error]Invalid image, not saving {}\n'.format(link))
+                print('[Error] Invalid image, not saving {}\n'.format(link))
                 raise ValueError('Invalid image, not saving {}\n'.format(link))
 
     def download_image(self, link) -> None:
@@ -158,3 +185,11 @@ class Bing:
 
             self.page_counter += 1
         print("\n\n[%] Done. Downloaded {} images.".format(self.download_count))
+
+    @property
+    def query(self):
+        return self.query
+
+    @query.setter
+    def query(self, query):
+        self.query = query
