@@ -35,10 +35,10 @@ class Bing:
         if img_filter is None:
             img_filter = ""
         self.image_size: str = image_size
-        self.download_count: int = 0
+        self.__download_count: int = 0
         self.file_hashes: set = set()
-        self.query: str = query
-        self.output_dir = output_dir
+        self.__query: str = query
+        self.__output_dir = output_dir
         self.adult: bool = adult
         self.filter: Union[str, None] = img_filter
         self.verbose: bool = verbose
@@ -127,7 +127,7 @@ class Bing:
                 raise ValueError('Invalid image, not saving {}\n'.format(link))
 
     def download_image(self, link) -> None:
-        self.download_count += 1
+        self.__download_count += 1
         # Get the image link
         try:
             path = urllib.parse.urlsplit(link).path
@@ -138,32 +138,32 @@ class Bing:
 
             if self.verbose:
                 # Download the image
-                print("[%] Downloading Image #{} from {}".format(self.download_count, link))
+                print("[%] Downloading Image #{} from {}".format(self.__download_count, link))
 
             query_name = re.sub(r"\s", "_", self.query)
 
-            self.save_image(link, self.output_dir.joinpath("{}_Image_{}.{}".format(query_name,
-                                                                                   str(self.download_count),
-                                                                                   file_type)))
+            self.save_image(link, self.__output_dir.joinpath("{}_Image_{}.{}".format(query_name,
+                                                                                     str(self.__download_count),
+                                                                                     file_type)))
             if self.verbose:
                 print("[%] File Downloaded !\n")
 
         except Exception as e:
-            self.download_count -= 1
+            self.__download_count -= 1
             print("[!] Issue getting: {}\n[!] Error:: {}".format(link, e))
 
     def run(self) -> None:
-        while self.download_count < self.limit:
+        while self.__download_count < self.limit:
             if self.verbose:
                 print('\n\n[!!]Indexing page: {}\n'.format(self.page_counter + 1))
             # Parse the page source and download pics
-            request_url = 'https://www.bing.com/images/async?q=' + urllib.parse.quote_plus(self.query) \
+            request_url = 'https://www.bing.com/images/async?q=' + urllib.parse.quote_plus(self.__query) \
                           + '&first=' + str(self.page_counter) + '&count=' + str(self.limit) \
                           + '&adlt=' + self.adult + '&qft=' + self.get_filter(self.filter)
             request = urllib.request.Request(request_url, None, headers=self.headers)
             response = urllib.request.urlopen(request)
             html = response.read().decode('utf8')
-            if self.back_off[0] and self.back_off[1] + 2 < self.download_count:
+            if self.back_off[0] and self.back_off[1] + 2 < self.__download_count:
                 self.back_off = False, 0
             if html == "" and self.back_off[0]:
                 print("[%] No more images are available")
@@ -171,7 +171,7 @@ class Bing:
             elif html == "" and not self.back_off[0]:
                 print("[%] Encountered rate limit. Backing off...")
                 time.sleep(5)
-                self.back_off = True, self.download_count
+                self.back_off = True, self.__download_count
                 continue
             links = re.findall('murl&quot;:&quot;(.*?)&quot;', html)
             if self.verbose:
@@ -179,17 +179,26 @@ class Bing:
                 print("\n" + "=" * shutil.get_terminal_size((80, 20)).columns + "\n")
 
             for link in links:
-                if self.download_count < self.limit and link not in self.seen:
+                if self.__download_count < self.limit and link not in self.seen:
                     self.seen.add(link)
                     self.download_image(link)
 
             self.page_counter += 1
-        print("\n\n[%] Done. Downloaded {} images.".format(self.download_count))
+        print("\n\n[%] Done. Downloaded {} images.".format(self.__download_count))
+        self.__download_count = 0
 
     @property
     def query(self):
-        return self.query
+        return self.__query
 
     @query.setter
-    def query(self, query):
-        self.query = query
+    def query(self, value):
+        self.__query = value
+
+    @property
+    def output_dir(self):
+        return self.__output_dir
+
+    @output_dir.setter
+    def output_dir(self, value):
+        self.__output_dir = value
