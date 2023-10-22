@@ -11,7 +11,7 @@ from bing_image_downloader import downloader
 
 
 if __name__ == '__main__':
-    query = ["Cat", "Cats"]
+    query = "Cat"
     downloader.download(query,
                         limit=10,
                         output_dir='dataset',
