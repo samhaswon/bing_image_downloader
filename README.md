@@ -1,6 +1,6 @@
 ## Bing Image Downloader
 
-A Python library to download bulk of images form Bing.com.
+A Python library to download bulk of images from Bing.com.
 
 ### Disclaimer
 
