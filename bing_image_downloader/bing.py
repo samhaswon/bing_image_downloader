@@ -108,22 +108,23 @@ class Bing:
                 "alamy" in link or \
                 "istockphoto" in link or \
                 "depositphotos" in link or \
-                "gettyimages" in link:
+                "gettyimages" in link or \
+                "motionelements.com" in link:
             raise Exception("Watermarked photo")
 
         # Generally works for most URLs
         try:
-            urllib.request.urlretrieve(link, file_path)
+            request = urllib.request.Request(link, None, self.headers)
+            image: bytes = urllib.request.urlopen(request, timeout=self.timeout).read()
+            with open(str(file_path), 'wb') as f:
+                f.write(image)
         # Generally works for broken URLs
         except urllib.request.HTTPError:
             # Just in case the previous method actually downloaded something
             if os.path.isfile(file_path):
                 os.remove(file_path)
             print("[%] Encountered HTTP Error 403. Attempting secondary download method")
-            request = urllib.request.Request(link, None, self.headers)
-            image: bytes = urllib.request.urlopen(request, timeout=self.timeout).read()
-            with open(str(file_path), 'wb') as f:
-                f.write(image)
+            urllib.request.urlretrieve(link, file_path)
         # Validate the downloaded image with Pillow
         finally:
             try:
